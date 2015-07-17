@@ -7,6 +7,7 @@ from closuretree.models import ClosureModel
 from .fields import IPNetworkField
 from .utils import subnet_complement
 
+
 class Allocation(ClosureModel):
 
     name = models.CharField(max_length=500)
@@ -42,13 +43,15 @@ class Allocation(ClosureModel):
         if prefixlen is None:
             prefixlen = self.network.prefixlen + 1
         subnets = list(self.subnets.order_by('network'))
-        subnet_networks = [x.network for x in subnets]
         networks = []
         for subnet in self.network.subnet(prefixlen):
-            #if subnet in subnet_networks:
-                #continue
             contains = [x for x in subnets if x.network in subnet]
-            networks.append((subnet, contains))
+            try:
+                contained = self.subnets.filter(network__is_supernet_of=subnet).exclude(network=subnet).order_by('-network')[0]
+                networks.append((None, [], contained))
+            except IndexError:
+                contained = None
+            networks.append((subnet, contains, contained))
         return networks
 
     def __str__(self):
@@ -60,12 +63,14 @@ class Allocation(ClosureModel):
     class ClosureMeta:
         parent_attr = 'parent'
 
+
 @receiver(models.signals.pre_delete, sender=Allocation)
 def shuffle_parents_on_delete(sender, **kwargs):
     instance = kwargs['instance']
     count = instance.subnets.update(parent=instance.parent)
     if count:
         Allocation.rebuildtable()
+
 
 @receiver(models.signals.post_save, sender=Allocation)
 def shuffle_parents_on_save(sender, **kwargs):

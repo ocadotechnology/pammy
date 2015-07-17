@@ -1,7 +1,17 @@
-{% for network, existing in networks %}
+{% for network, existing, contained in networks %}
+    {% if contained %}
+        {% ifchanged contained %}
+            <tr class='disabled'>
+                <td>{% if contained %}<span class='has-tip tip-right' data-tooltip title='The following subnets will be created within this existing subnet'><i class='fi-alert'></i></span> {% endif %}<a href='{% url 'pammy/network' network=contained.network %}'>{{contained}}</a></td>
+                <td>{{contained.name}}</td>
+                <td></td>
+                <td></td>
+            </tr>
+        {% endifchanged %}
+    {% endif %}
     {% if not existing.0.network == network %}
-    <tr>
-        <td>{{network}}</td>
+    <tr {% if contained %}class='level-2'{% endif %}>
+        <td>{% if contained %}<span class='has-tip tip-right' data-tooltip title='This subnets will be created within the existing subnet ({{contained.name}}: {{contained}})'><i class='fi-alert'></i></span> {% endif %}{{network}}</td>
         <td><input type='text' name='network_{{network.value}}_{{network.prefixlen}}' /></td>
         <td>{{network|length}}</td>
         <td><a href='#' class='disable-network tiny radius icon button'>Remove</a></td>

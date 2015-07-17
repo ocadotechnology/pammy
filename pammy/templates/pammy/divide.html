@@ -8,25 +8,35 @@
     var divide_url = '{% url 'pammy/ui/divide_network' %}';
     var network = '{{allocation.network}}';
 
-    $(document).ready(function() {
+    var select_button = function(button) {
+        $('.button-group .button').addClass('secondary');
+        $(button).removeClass('secondary');
+    }
 
-        $('#prefixlen').change(function() {
-            var len = $(this).val();
-            var request = $.get(divide_url, {'network': network, 'prefixlen': len});
-            request.done(function(d) {
-                $('tbody').empty().append(d);
-            });
-        });
+    $(document).ready(function() {
 
         $('.button-group .button').click(function(e) {
             e.preventDefault();
             $this = $(this);
-            $('.button-group .button').addClass('secondary');
-            $this.removeClass('secondary');
-            $('#prefixlen').val($this.data('num')).change();
+            select_button($this);
+
+            var request = $.get(divide_url, {'network': network, 'prefixlen': $this.data('num')});
+            request.done(function(d) {
+                $('tbody').empty().append(d);
+                $(document).foundation({'tooltip': true});
+                window.history.pushState({'body': $('tbody').html(), 'button': $this.attr('id')}, '', '?prefix=' + $this.data('num'));
+            });
+
         });
 
     });
+
+    window.onpopstate = function(e) {
+        if (e.state) {
+            $('tbody').empty().append(e.state.body);
+            select_button('#' + e.state.button);
+        }
+    };
 
 </script>
 
@@ -38,15 +48,15 @@
 
 <p>Divide this network into as many equal-size subnets as possible.</p>
 
-<select name='prefixlen' id='prefixlen' style='display: none'>
+<!--<select name='prefixlen' id='prefixlen' style='display: none'>
     {% for num, quantity in divisions %}
     <option value='{{num}}'>/{{num}} ({{quantity}} maximum)</option>
     {% endfor %}
-</select>
+</select>-->
 
 <ul class='button-group even-{{divisions|length}} radius'>
     {% for num, quantity in divisions %}
-    <li><a href='#' class='small button {% if not forloop.first %}secondary{% endif %}' data-num='{{num}}'>/{{num}} ({{quantity}})</a></li>
+    <li><a id='prefix-{{num}}' href='#' class='small button {% if prefix and num != prefix %}secondary{% endif %}' data-num='{{num}}'>/{{num}} ({{quantity}})</a></li>
     {% endfor %}
 </ul>
 

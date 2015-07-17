@@ -118,9 +118,15 @@ def divide(request, network):
 
     divisions = zip(range(allocation.network.prefixlen + 1, 33), [2**x for x in range(1, 33)])
 
-    networks = allocation.divide()
+    try:
+        prefix = int(request.GET['prefix'])
+    except (KeyError, ValueError):
+        prefix = allocation.network.prefixlen + 1
+
+    networks = allocation.divide(prefix)
 
     return render(request, 'pammy/divide.html', {
+        'prefix': prefix,
         'divisions': divisions,
         'allocation': allocation,
         'networks': networks,
